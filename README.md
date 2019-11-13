@@ -16,4 +16,4 @@ When the aggressor script is loaded on Cobalt Strike, three new commands will be
 
 Demonstration Video : https://www.youtube.com/watch?v=F77eODhkJ80
 
-More details can be found on : https://mdsec.co.uk/blog/
+More details can be found on : https://www.mdsec.co.uk/2019/11/rdpthief-extracting-clear-text-credentials-from-remote-desktop-clients/
